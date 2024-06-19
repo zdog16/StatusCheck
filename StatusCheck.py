@@ -4,11 +4,12 @@ from rich.table import Table
 from rich.text import Text
 import pyperclip
 import requests
-import detectKeys as keys
+import keyboard
 import argparse
 import json
 import time
 import os
+import sys
 install()
 c = Console()
 
@@ -44,6 +45,15 @@ class Scanner:
     def clear(self) -> None:
         os.system('cls')
     
+    def waitForCopy(self):
+        while True:
+            if keyboard.is_pressed('ctrl'):
+                if keyboard.is_pressed('c'):
+                    time.sleep(0.1)
+                    return True
+            elif keyboard.is_pressed('esc'):
+                c.print("[-] Exiting... ", style="red")
+                sys.exit()
     
     def ping(self, host) -> bool:
         try:
@@ -60,7 +70,7 @@ class Scanner:
     
     def getTableFromClipboard(self) -> None:
         c.print("[+] Copy the Table")
-        keys.waitForCopy()
+        self.waitForCopy()
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')
         self.database = []
