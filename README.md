@@ -13,6 +13,7 @@ When run from a command line there are serveral optional arguments. Multiple arg
 | `-r`| `--recheck` | Re-Checks the last IP(s) scanned |
 | `-m` | `--manual` | Manual Enter the IPs, user will be prompted for each IP to check |
 | `-w` | `--watch` | Activate Watch Mode |
+| `-i` | `--interval` | Set Watch Mode Interval |
 
 ## Usage
 If run with no arguments, the script will output the following
@@ -31,7 +32,7 @@ If run with the `-s` argument, the script will imediatly run a check on that IP 
 If run with the `-m` argument, the script will prompt the user to enter as may IPs as they want. Each IP should be followed by the enter key. To finish entering IPs press enter without entering an IP.
 
 ## Watch Mode
-If run with the `-w` argument, instead of only checking each IP once, the script will continue to run until all IPs are online or the script is stopped manually with `Ctrl+C`. The `.watchCycle` variable controls how many seconds the script will wait after checking the last IP before it starts checking again.
+If run with the `-w` argument, instead of only checking each IP once, the script will continue to run until all IPs are online or the script is stopped manually with `Ctrl+C`. The `.watchCycle` variable controls how many seconds the script will wait after checking the last IP before it starts checking again. The `-i` or `--interval` argument allows you to set the cycle of how often the script will wait betweeen checks.
 
 ## Repeat Mode
 All scan lists are stored in .json format in file. The default filename is `mem_statusCheck.json` and will be created automatically on first launch. You can change the filename with the `.memoryFilename` variable. If the `-r` argument is included, the script will automatically take the contents of that file and use that as the list to scan.

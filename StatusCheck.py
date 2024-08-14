@@ -24,13 +24,18 @@ class Scanner:
         self.parser.add_argument("-r", "--recheck", action="store_true", help="Recheck the last list that was checked")
         self.parser.add_argument("-m", "--manual", action="store_true", help="Manually Enter IPs")
         self.parser.add_argument("-w", "--watch", action="store_true", help="Watch IP(s) unitl they come online")
+        self.parser.add_argument("-i", "--interval", help="Interval between watch cycles")
         self.args = self.parser.parse_args()
         self.tableTitle = self.args.title
         self.singleIP = self.args.single
         self.recheckMode = self.args.recheck
         self.watchMode = self.args.watch
         self.manualEntry = self.args.manual
-        self.watchCycle = 10
+        if self.args.interval == None:
+            self.watchCycle = 10
+        else:
+            self.watchCycle = int(self.args.interval)
+            c.print("[i] Watch Cycle set to " + str(self.watchCycle))
 
         try:
             with open(self.memoryFilename, 'r+') as file:
