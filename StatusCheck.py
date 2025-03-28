@@ -4,12 +4,11 @@ from rich.table import Table
 from rich.text import Text
 import pyperclip
 import requests
-import keyboard
+import detectKeys as keys
 import argparse
 import json
 import time
 import os
-import sys
 install()
 c = Console()
 
@@ -24,18 +23,18 @@ class Scanner:
         self.parser.add_argument("-r", "--recheck", action="store_true", help="Recheck the last list that was checked")
         self.parser.add_argument("-m", "--manual", action="store_true", help="Manually Enter IPs")
         self.parser.add_argument("-w", "--watch", action="store_true", help="Watch IP(s) unitl they come online")
-        self.parser.add_argument("-i", "--interval", help="Interval between watch cycles")
+        self.parser.add_argument("-p", "--ports", action="store_true", help="Outside Port Mode")
+        self.parser.add_argument("-f", "--filter", help="Filter and display results (Offline, Online)")
         self.args = self.parser.parse_args()
         self.tableTitle = self.args.title
         self.singleIP = self.args.single
+        self.portMode = self.args.ports
         self.recheckMode = self.args.recheck
         self.watchMode = self.args.watch
         self.manualEntry = self.args.manual
-        if self.args.interval == None:
-            self.watchCycle = 10
-        else:
-            self.watchCycle = int(self.args.interval)
-            c.print("[i] Watch Cycle set to " + str(self.watchCycle))
+        self.filter = self.args.filter
+        self.watchCycle = 10
+        self.baseIP = ''
 
         try:
             with open(self.memoryFilename, 'r+') as file:
@@ -50,15 +49,6 @@ class Scanner:
     def clear(self) -> None:
         os.system('cls')
     
-    def waitForCopy(self):
-        while True:
-            if keyboard.is_pressed('ctrl'):
-                if keyboard.is_pressed('c'):
-                    time.sleep(0.1)
-                    return True
-            elif keyboard.is_pressed('esc'):
-                c.print("[-] Exiting... ", style="red")
-                sys.exit()
     
     def ping(self, host) -> bool:
         try:
@@ -73,16 +63,19 @@ class Scanner:
         except requests.exceptions.ConnectionError:
             return False
     
-    def getTableFromClipboard(self) -> None:
+    def getTableFromClipboard(self, ports=False) -> None:
         c.print("[+] Copy the Table")
-        self.waitForCopy()
+        keys.waitForCopy()
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')
         self.database = []
         for i in RowSplit:
             tempList = i.split('\t')
             DeviceName = tempList[0]
-            IP = tempList[1].replace('\r', '')
+            if ports:
+                IP = self.baseIP + ":" + tempList[1].replace('\r', '')
+            else:
+                IP = tempList[1].replace('\r', '')
             self.database.append({"device": DeviceName, "IP": IP, "status": "UnKown"})
 
     def getTableFromUser(self) -> None:
@@ -96,15 +89,25 @@ class Scanner:
                 break
 
     
-    def showTable(self) -> None:
+    def showTable(self, filter="None") -> None:
+        self.clear()
         if self.tableTitle != None:
-            table = Table(title=self.tableTitle)
+            if self.filter != None:
+                table = Table(title=f"{self.tableTitle} - Filtered for {self.filter}")
+            else:
+                table = Table(title=self.tableTitle)
         else:
-            table = Table(title="Device")
+            if self.filter != None:
+                table  = Table(title=f"Devices - Filtered for {self.filter}")
+            else:
+                table = Table(title="Devices")
         if self.singleIP == None or self.manualEntry:
             table.add_column("Device", justify="left")
         table.add_column("IP Addres", justify="center")
         table.add_column("Status", justify="center")
+
+        if self.portMode:
+            table.add_row("Base IP", self.baseIP, "")
 
         for i in self.database:
             if i["status"] == "Online":
@@ -116,13 +119,18 @@ class Scanner:
             else:
                 statusStyle = "white"
                 
-            if self.singleIP == None or self.manualEntry:
-                table.add_row(i["device"], i["IP"], Text(i["status"], style=statusStyle, justify="center"))
-            else:
-                table.add_row(i["IP"], Text(i["status"], style=statusStyle, justify="center"))
+            if filter == "None" or i["status"] == filter:
+                if self.singleIP == None or self.manualEntry:
+                    if self.portMode:
+                        table.add_row(i["device"], i["IP"].replace(self.baseIP, ""), Text(i["status"], style=statusStyle, justify="center"))
+                    else:
+                        table.add_row(i["device"], i["IP"], Text(i["status"], style=statusStyle, justify="center"))
+                else:
+                    table.add_row(i["IP"], Text(i["status"], style=statusStyle, justify="center"))
+        
         c.print(table)
 
-    def generateStatistics(self) -> dict:
+    def generateStatistics(self, alsoPrint=True) -> dict:
         stats = {}
         stats['totalDevices'] = len(self.database)
         stats['onlineDevices'] = 0
@@ -133,8 +141,19 @@ class Scanner:
         onlinePercent = stats['onlineDevices'] / stats['totalDevices']
         stats['percentOnline'] = str(round((onlinePercent * 100), 1)) + "%"
         stats['percentOffline'] = str(round((100 - float(stats['percentOnline'].replace("%", ""))), 1)) + "%"
+
+        if alsoPrint:
+            c.print(f"Checked a total of {stats['totalDevices']} Devices")
+            c.print(f"{stats['onlineDevices']} or {stats['percentOnline']} Online")
+            c.print(f"{stats['offlineDevices']} or {stats['percentOffline']} Offline")
+
         return stats
-        
+    
+    def saveDB(self) -> None:
+        with open(self.memoryFilename, 'w') as file:
+            json.dump(self.database, file)
+
+
     def buildDB(self) -> None:
         if self.singleIP != None:
             self.database = [{"device": "Device", "IP": self.singleIP, "status": "UnKnown"}]
@@ -143,14 +162,17 @@ class Scanner:
         elif self.manualEntry:
             self.database = self.getTableFromUser()
         else:
+            if self.portMode:
+                c.print('Enter the Base IP address')
+                self.baseIP = input('>')
+            
             try:
-                self.getTableFromClipboard()
+                self.getTableFromClipboard(self.portMode)
             except KeyboardInterrupt:
                 c.print("[+] Exiting...", style="red")
                 exit()
-        
-        with open(self.memoryFilename, 'w') as file:
-            json.dump(self.database, file)
+
+        self.saveDB()
 
 
     def checkDB(self) -> None:
@@ -167,12 +189,8 @@ class Scanner:
                 c.print("[+] Exiting...", style="red")
                 exit()
             
-        self.clear()
-        self.showTable()
-        stats = self.generateStatistics()
-        c.print(f"Total of {stats['totalDevices']} Devices")
-        c.print(f"{stats['onlineDevices']} or {stats['percentOnline']} Online")
-        c.print(f"{stats['offlineDevices']} or {stats['percentOffline']} Offline")
+        self.saveDB()
+        
 
     def watchDB(self) -> None:
         allFound = False
@@ -207,8 +225,15 @@ class Scanner:
         self.buildDB()
         if self.watchMode:
             self.watchDB()
+        elif self.filter != None:
+            self.checkDB()
+            self.clear()
+            self.showTable(self.filter)
+            self.generateStatistics()
         else:
             self.checkDB()
+            self.showTable()
+            self.generateStatistics()
 
 if __name__ == "__main__":
     scanner = Scanner()

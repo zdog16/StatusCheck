@@ -14,6 +14,8 @@ When run from a command line there are serveral optional arguments. Multiple arg
 | `-m` | `--manual` | Manual Enter the IPs, user will be prompted for each IP to check |
 | `-w` | `--watch` | Activate Watch Mode |
 | `-i` | `--interval` | Set Watch Mode Interval |
+| `-p` | `--ports` | Activate Port Mode |
+| `-f` | `--filter` | Filter Results |
 
 ## Usage
 If run with no arguments, the script will output the following
@@ -21,12 +23,12 @@ If run with no arguments, the script will output the following
 > statusCheck.py
 > [+] Copy the Table
 ```
-The script will wait until the user copies the desired Device list from a spreadsheet. The List should contain 2 columns, the left column being the Device name to display and the right column being the IP address to scan
+The script will wait until the user copies the desired Device list from a spreadsheet. The List should contain 2 columns, the left column being the Device name to display and the right column being the IP address to scan. (See Port mode section for column contents when in port mode)
 
 Once the list has been copied the script will check each IP and report the status. After all IPs have been checked the full list and online statistics will be displayed.
 
 ## Single IP Mode
-If run with the `-s` argument, the script will imediatly run a check on that IP and output the result.
+The `-s` argument should be followed by a valid IP address. When run the script will imediatly run a check on that IP and output the result.
 
 ## Manual Mode
 If run with the `-m` argument, the script will prompt the user to enter as may IPs as they want. Each IP should be followed by the enter key. To finish entering IPs press enter without entering an IP.
@@ -36,6 +38,12 @@ If run with the `-w` argument, instead of only checking each IP once, the script
 
 ## Repeat Mode
 All scan lists are stored in .json format in file. The default filename is `mem_statusCheck.json` and will be created automatically on first launch. You can change the filename with the `.memoryFilename` variable. If the `-r` argument is included, the script will automatically take the contents of that file and use that as the list to scan.
+
+## Port Mode
+If run with the `-p` argument, the script will run in Port Mode. Port Mode allows you to scan multiple ports on the same outside IP of a remote network. When port mode is activated the user will be promted for the base IP which will be stored in the class. When the user copies the device list the first column should still contain the device name, but the second column should contain the port number only. The port will automatically be appended to the base IP when scanning.
+
+## Result Filter
+The `-f` argument must be followed by either `Online` or `Offline`. The script will run as normal utiziling all other arugments, but when finished only the devices with the specified filter will be shown. The statistics page will show the same database wide statistics.
 
 # Dependencies
 This script relies on the following dependencies.
