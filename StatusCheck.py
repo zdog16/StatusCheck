@@ -4,18 +4,21 @@ from rich.table import Table
 from rich.text import Text
 import pyperclip
 import requests
-import detectKeys as keys
+import keyboard
 import argparse
 import json
 import time
+import sys
 import os
 install()
 c = Console()
 
 class Scanner:
-    def __init__(self) -> None:
+    def __init__(self, project=None) -> None:
         self.database = []
         self.memoryFilename = "mem_statusCheck.json"
+        self.projectDatabase = []
+        self.projectName = project
         self.timeout = 1
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("-t", "--title", help="Optional Title for the displayed table")
@@ -62,10 +65,52 @@ class Scanner:
             return False
         except requests.exceptions.ConnectionError:
             return False
+        
+    def verifyIP(IP=str):
+        octets = IP.split(".")
+
+        # Check that There are exactly 4 Octets
+        if len(octets) != 4:
+            return False, "To Many Octets"
+
+        # Verify each Octet is a number
+        for i in octets:
+            try:
+                octets[octets.index(i)] = int(i)
+            except ValueError:
+                return False, f"Octet {i} is not a number"
+
+        # Verify each Octet is between 0 and 254
+        for i in octets:
+            if i > 254 or i < 0:
+                return False, f"Octet {i} is outside acceptable range"
+        
+        # Verify that the first Octet is not 0
+        if octets[0] == 0:
+            return False, "First Octet is outside of the acceptable range"
+
+        # Verify that the last Octet is not 0
+        if octets[3] == 0:
+            return False, "Last Octet is outside of the acceptable range"
+        
+        # All conditions passed
+        return True, "Valid"
+    
+    def waitForCopy(self) -> bool:
+        while True:
+            if keyboard.is_pressed('ctrl'):
+                if keyboard.is_pressed('c'):
+                    while keyboard.is_pressed('c'):
+                        pass
+                    return True
+            elif keyboard.is_pressed('esc'):
+                c.print("[+] Escape Key Detected, Program terminated", style="red")
+                sys.exit()
+
     
     def getTableFromClipboard(self, ports=False) -> None:
         c.print("[+] Copy the Table")
-        keys.waitForCopy()
+        self.waitForCopy()
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')
         self.database = []
@@ -174,6 +219,28 @@ class Scanner:
 
         self.saveDB()
 
+    def getProjectDB(self) -> None:
+        with open(self.projectName + ".json", "r") as file:
+            self.projectDatabase = json.load(file)
+        
+        c.print("Which Section do you want to Scan?")
+        curOption = 1
+        for section in self.projectDatabase:
+            c.print(f"{curOption}) {section['name']}")
+            curOption += 1
+        
+        while True:
+            try:
+                usrSelection = int(input(">"))
+                break
+            except ValueError:
+                c.print("Please enter a number", style="red")
+        
+        self.database = self.projectDatabase[usrSelection - 1]["data"]
+        if self.tableTitle == None:
+            self.tableTitle = self.projectDatabase[usrSelection - 1]["name"]
+        
+
 
     def checkDB(self) -> None:
         for i in self.database:
@@ -222,7 +289,11 @@ class Scanner:
         c.print("All IPs Online", style="green")
 
     def run(self) -> None:
-        self.buildDB()
+        if self.projectName != None:
+            self.getProjectDB()
+        else:
+            self.buildDB()
+
         if self.watchMode:
             self.watchDB()
         elif self.filter != None:
