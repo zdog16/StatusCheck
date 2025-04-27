@@ -55,7 +55,7 @@ This feature is freshly in Beta so documentation and updates to come. The goal i
 | ------------------------------- | -------|
 | Build Core Project Mode Functionality | Done |
 | Update UI for Project Section Selection | In Progress |
-| Integrate DB Builder into main Script | Not Started |
+| Integrate DB Builder into main Script | In Progress |
 | Add Functionality to Edit Exisitng Project files | Not Started |
 | Add Argument to Activate Project Mode | Not Started |
 

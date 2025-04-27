@@ -1,13 +1,25 @@
 from rich.traceback import install
 from rich.console import Console
 from rich.prompt import Prompt
-import detectKeys as keys
+import keyboard
 import pyperclip
 import json
+import sys
 install()
 c = Console()
 
 database = [] 
+
+def waitForCopy() -> bool:
+    while True:
+        if keyboard.is_pressed('ctrl'):
+            if keyboard.is_pressed('c'):
+                while keyboard.is_pressed('c'):
+                    pass
+                return True
+        elif keyboard.is_pressed('esc'):
+            c.print("[+] Escape Key Detected, Program terminated", style="red")
+            sys.exit()
 
 def buildMenu(options: list):
     curSel = 1
@@ -36,7 +48,7 @@ while True:
         name = Prompt.ask("What is the Section Name")
         sectionNames.append(name)
         c.print("Copy the Section Data")
-        keys.waitForCopy()
+        waitForCopy()
 
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')

@@ -1,5 +1,6 @@
 from rich.console import Console
 from rich.traceback import install
+from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
 import pyperclip
@@ -28,6 +29,7 @@ class Scanner:
         self.parser.add_argument("-w", "--watch", action="store_true", help="Watch IP(s) unitl they come online")
         self.parser.add_argument("-p", "--ports", action="store_true", help="Outside Port Mode")
         self.parser.add_argument("-f", "--filter", help="Filter and display results (Offline, Online)")
+        self.parser.add_argument("-b", "--build", action="store_true", help="Build Project Database")
         self.args = self.parser.parse_args()
         self.tableTitle = self.args.title
         self.singleIP = self.args.single
@@ -36,6 +38,7 @@ class Scanner:
         self.watchMode = self.args.watch
         self.manualEntry = self.args.manual
         self.filter = self.args.filter
+        self.buildProjectMode = self.args.build
         self.watchCycle = 10
         self.baseIP = ''
 
@@ -122,6 +125,14 @@ class Scanner:
             else:
                 IP = tempList[1].replace('\r', '')
             self.database.append({"device": DeviceName, "IP": IP, "status": "UnKown"})
+
+    def buildProjectDB(self) -> None:
+        self.projectName = Prompt.ask("What is the Project Name?")
+        sectionNames = []
+        table = Table(self.projectName)
+        
+        #Build Table
+                
 
     def getTableFromUser(self) -> None:
         self.database = []
@@ -223,21 +234,27 @@ class Scanner:
         with open(self.projectName + ".json", "r") as file:
             self.projectDatabase = json.load(file)
         
-        c.print("Which Section do you want to Scan?")
-        table = Table(title=f"{self.projectName} Available Sections")
-        table.add_column()
-        table.add_column()
+        table = Table()
+        table.add_column("#")
+        table.add_column("Section")
         curOption = 1
         for section in self.projectDatabase:
-            table.add_row(curOption, section["name"])
+            table.add_row(str(curOption), section["name"])
             curOption += 1
+        table.add_row(str(curOption), "Exit")
         
+        c.clear()
+        c.print("Which Section do you want to Scan?")
+        c.print(table)
         while True:
             try:
                 usrSelection = int(input(">"))
                 break
             except ValueError:
                 c.print("Please enter a number", style="red")
+
+        if usrSelection == curOption:
+            sys.exit()
         
         self.database = self.projectDatabase[usrSelection - 1]["data"]
         if self.tableTitle == None:
@@ -310,5 +327,5 @@ class Scanner:
             self.generateStatistics()
 
 if __name__ == "__main__":
-    scanner = Scanner()
+    scanner = Scanner("Test Project")
     scanner.run()

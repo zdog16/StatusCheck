@@ -1,1 +1,1 @@
-[{"device": "Device", "IP": "192.168.51.18", "status": "UnKnown"}]
+[{"device": "OAV 1-1", "IP": "10.71.243.11", "status": "Offline"}, {"device": "OAV 1-2", "IP": "10.71.243.12", "status": "Offline"}, {"device": "OAV 1-3", "IP": "10.71.243.13", "status": "Offline"}, {"device": "OAV 1-4", "IP": "10.71.243.14", "status": "Offline"}]
