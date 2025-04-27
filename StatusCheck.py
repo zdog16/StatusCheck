@@ -14,6 +14,73 @@ import os
 install()
 c = Console()
 
+class ProjectBuilder:
+    def __init__(self) -> None:
+        self.database = []
+        self.projectName = []
+        self.sections = []
+
+    def buildMenu(self, options: list) -> str:
+        curOption = 1
+        for item in options:
+            c.print(f"{curOption}) {item}")
+        
+        while True:
+            try:
+                usrSelection = int(input(">"))
+            except ValueError:
+                c.print("Please enter a number", style="red")
+            
+            if usrSelection < 1 or usrSelection > len(options):
+                c.print("Please Enter a Valid selection", style="red")
+            else:
+                break
+        
+        return options[usrSelection - 1]
+        
+
+
+    def buildProjectDB(self) -> None:
+        self.projectName = Prompt.ask("What is the Project Name?")
+        self.sectionNames = []
+        table = Table(self.projectName)
+        table.add_column("#")
+        table.add_column("Section")
+
+        while True:
+            c.clear()
+            c.print(table)
+            curSelection = 1
+            for item in ["Add Section", "Replace Section", "Delete Section", "Save Project DB"]:
+                c.print(f"{curSelection}) {item}")
+
+            while True:
+                try:
+                    usrSelection = int(input(">") - 1)
+                except ValueError:
+                    c.print("Please Enter a Valid Option", style="red")
+                if usrSelection < 0 or usrSelection > 3:
+                    c.print("Please enter a Valid Selection", style="red")
+                else:
+                    break
+            
+            if usrSelection == 0:
+                name = Prompt.ask("What is the section name?")
+                sectionNames.append(name)
+                c.print("Copy the Section Data")
+                self.waitForCopy()
+
+                rowSplit = pyperclip.paste().split("\n")
+                tempDatabase = []
+                for i in rowSplit:
+                    tempList = i.split('\t')
+                    tempDatabase.append({"device": tempList[0], "IP": tempList[1].replace("\r", ""), "status": "UnKnown"})
+
+                self.sections.append({"name": name, "data": tempDatabase})    
+                
+
+
+
 class Scanner:
     def __init__(self, project=None) -> None:
         self.database = []
@@ -126,49 +193,7 @@ class Scanner:
                 IP = tempList[1].replace('\r', '')
             self.database.append({"device": DeviceName, "IP": IP, "status": "UnKown"})
 
-    def buildProjectDB(self) -> None:
-        self.projectName = Prompt.ask("What is the Project Name?")
-        sectionNames = []
-        table = Table(self.projectName)
-        table.add_column("#")
-        table.add_column("Section")
-
-        while True:
-            c.clear()
-            c.print(table)
-            curSelection = 1
-            for item in ["Add Section", "Replace Section", "Delete Section", "Save Project DB"]:
-                c.print(f"{curSelection}) {item}")
-
-            while True:
-                try:
-                    usrSelection = int(input(">") - 1)
-                except ValueError:
-                    c.print("Please Enter a Valid Option", style="red")
-                if usrSelection < 0 or usrSelection > 3:
-                    c.print("Please enter a Valid Selection", style="red")
-                else:
-                    break
-            
-            if usrSelection == 0:
-                name = Prompt.ask("What is the section name?")
-                sectionNames.append(name)
-                c.print("Copy the Section Data")
-                self.waitForCopy()
-
-                rowSplit = pyperclip.paste().split("\n")
-                tempDatabase = []
-                for i in rowSplit:
-                    tempList = i.split('\t')
-                    tempDatabase.append({"device": tempList[0], "IP": tempList[1].replace("\r", ""), "status": "UnKnown"})
-
-                self.database.append({"name": name, "data": tempDatabase})    
-        
-        #Build Table
-
     
-                
-
     def getTableFromUser(self) -> None:
         self.database = []
         c.print("[+] Enter the IPs to check")
