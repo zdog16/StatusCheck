@@ -224,9 +224,12 @@ class Scanner:
             self.projectDatabase = json.load(file)
         
         c.print("Which Section do you want to Scan?")
+        table = Table(title=f"{self.projectName} Available Sections")
+        table.add_column()
+        table.add_column()
         curOption = 1
         for section in self.projectDatabase:
-            c.print(f"{curOption}) {section['name']}")
+            table.add_row(curOption, section["name"])
             curOption += 1
         
         while True:
