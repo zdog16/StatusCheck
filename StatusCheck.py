@@ -14,16 +14,41 @@ import os
 install()
 c = Console()
 
+class toolkit:
+    def __init__(self) -> None:
+        pass
+
+    def waitForCopy(self) -> bool:
+        while True:
+            if keyboard.is_pressed('ctrl'):
+                if keyboard.is_pressed('c'):
+                    while keyboard.is_pressed('c'):
+                        pass
+                    return True
+            elif keyboard.is_pressed('esc'):
+                c.print("[+] Escape Key Detected, Program terminated", style="red")
+                sys.exit()
+
 class ProjectBuilder:
     def __init__(self) -> None:
         self.database = []
         self.projectName = []
         self.sections = []
+        self.sectionNames = []
+        self.tools = toolkit()
+
+    def saveDB(self) -> None:
+        with open(self.projectName + ".json", "w") as file:
+            json.dump(self.database, file)
+
+        c.print(f"[+] Database File Written to {self.projectName + '.json'}", style="green")
+
 
     def buildMenu(self, options: list) -> str:
         curOption = 1
         for item in options:
             c.print(f"{curOption}) {item}")
+            curOption += 1
         
         while True:
             try:
@@ -38,37 +63,34 @@ class ProjectBuilder:
         
         return options[usrSelection - 1]
         
+    def buildSectionsTable(self, showNumbers=False) -> None:
+        curOption = 1
+        table = Table(title=self.projectName)
+        if showNumbers:
+            table.add_column("#")
+        table.add_column("Section")
+        for section in self.sections:
+            if showNumbers:
+                table.add_row(str(curOption), section["name"])
+            else:
+                table.add_row(section["name"])        
+            curOption += 1
+        c.print(table)
 
 
     def buildProjectDB(self) -> None:
         self.projectName = Prompt.ask("What is the Project Name?")
-        self.sectionNames = []
-        table = Table(self.projectName)
-        table.add_column("#")
-        table.add_column("Section")
 
         while True:
             c.clear()
-            c.print(table)
-            curSelection = 1
-            for item in ["Add Section", "Replace Section", "Delete Section", "Save Project DB"]:
-                c.print(f"{curSelection}) {item}")
-
-            while True:
-                try:
-                    usrSelection = int(input(">") - 1)
-                except ValueError:
-                    c.print("Please Enter a Valid Option", style="red")
-                if usrSelection < 0 or usrSelection > 3:
-                    c.print("Please enter a Valid Selection", style="red")
-                else:
-                    break
+            self.buildSectionsTable()
+            usrSelection = self.buildMenu(["Add Section", "Replace Section", "Delete Section", "Save Project DB"])
             
-            if usrSelection == 0:
+            if usrSelection == "Add Section":
                 name = Prompt.ask("What is the section name?")
-                sectionNames.append(name)
+                self.sectionNames.append(name)
                 c.print("Copy the Section Data")
-                self.waitForCopy()
+                self.tools.waitForCopy()
 
                 rowSplit = pyperclip.paste().split("\n")
                 tempDatabase = []
@@ -77,7 +99,20 @@ class ProjectBuilder:
                     tempDatabase.append({"device": tempList[0], "IP": tempList[1].replace("\r", ""), "status": "UnKnown"})
 
                 self.sections.append({"name": name, "data": tempDatabase})    
+
+            elif usrSelection == "Replace Section":
+                c.clear()
+                c.print("[?] Which Section do you want to delete?")
                 
+                pass
+
+            elif usrSelection == "Delete Section":
+                ## Delete Section
+                pass
+                
+            elif usrSelection == "Save Project DB":
+                self.saveDB()
+                break
 
 
 
@@ -108,6 +143,7 @@ class Scanner:
         self.buildProjectMode = self.args.build
         self.watchCycle = 10
         self.baseIP = ''
+        self.tools = toolkit()
 
         try:
             with open(self.memoryFilename, 'r+') as file:
@@ -165,22 +201,11 @@ class Scanner:
         
         # All conditions passed
         return True, "Valid"
-    
-    def waitForCopy(self) -> bool:
-        while True:
-            if keyboard.is_pressed('ctrl'):
-                if keyboard.is_pressed('c'):
-                    while keyboard.is_pressed('c'):
-                        pass
-                    return True
-            elif keyboard.is_pressed('esc'):
-                c.print("[+] Escape Key Detected, Program terminated", style="red")
-                sys.exit()
 
     
     def getTableFromClipboard(self, ports=False) -> None:
         c.print("[+] Copy the Table")
-        self.waitForCopy()
+        self.tools.waitForCopy()
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')
         self.database = []
@@ -381,6 +406,9 @@ class Scanner:
             self.clear()
             self.showTable(self.filter)
             self.generateStatistics()
+        elif self.buildProjectMode:
+            builder = ProjectBuilder()
+            ProjectBuilder.buildProjectDB()
         else:
             self.checkDB()
             self.showTable()
