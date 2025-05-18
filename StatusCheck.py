@@ -7,6 +7,8 @@ import pyperclip
 import requests
 import keyboard
 import argparse
+import platform
+import subprocess
 import json
 import time
 import sys
@@ -131,7 +133,8 @@ class Scanner:
         self.parser.add_argument("-w", "--watch", action="store_true", help="Watch IP(s) unitl they come online")
         self.parser.add_argument("-p", "--ports", action="store_true", help="Outside Port Mode")
         self.parser.add_argument("-f", "--filter", help="Filter and display results (Offline, Online)")
-        self.parser.add_argument("-b", "--build", action="store_true", help="Build Project Database")
+        self.parser.add_argument("-i", "--ping", action="store_true", help="Only ping the device, do not check for webserver")
+        self.parser.add_argument("-b", "--build", action="store_true", help="Build Project Database")  
         self.args = self.parser.parse_args()
         self.tableTitle = self.args.title
         self.singleIP = self.args.single
@@ -140,6 +143,7 @@ class Scanner:
         self.watchMode = self.args.watch
         self.manualEntry = self.args.manual
         self.filter = self.args.filter
+        self.pingOnly = self.args.ping
         self.buildProjectMode = self.args.build
         self.watchCycle = 10
         self.baseIP = ''
@@ -159,7 +163,7 @@ class Scanner:
         os.system('cls')
     
     
-    def ping(self, host) -> bool:
+    def checkWebServer(self, host) -> bool:
         try:
             response = requests.get(f"http://{host}", timeout=self.timeout)
             return response.status_code == 200
@@ -172,6 +176,24 @@ class Scanner:
         except requests.exceptions.ConnectionError:
             return False
         
+    def ping(self, host) -> bool:
+        param = '-n' if platform.system().lower == 'windows' else '-c'
+        command = ['ping', param, '1', host]
+        return subprocess.call(command) == 0
+    
+    def checkDevice(self, host) -> bool:
+        if self.pingOnly:
+            if self.ping(host):
+                return "Online"
+        else:
+            if not self.checkWebServer(host):
+                if self.ping(host):
+                    return "Responding"
+                else:
+                    return "Offline"
+            else:
+                return "Online"
+
     def verifyIP(IP=str):
         octets = IP.split(".")
 
@@ -353,10 +375,7 @@ class Scanner:
                 self.clear()
                 i["status"] = "Checking"
                 self.showTable()
-                if self.ping(i["IP"]):
-                    i["status"] = "Online"
-                else:
-                    i["status"] = "Offline"
+                i["status"] = self.checkDevice(i["IP"])
             except KeyboardInterrupt:
                 c.print("[+] Exiting...", style="red")
                 exit()
@@ -374,10 +393,8 @@ class Scanner:
                 self.clear()
                 i["status"] = "Checking"
                 self.showTable()
-                if self.ping(i["IP"]):
-                    i["status"] = "Online"
-                else:
-                    i["status"] = "Offline"
+                i["status"] = self.checkDevice(i["IP"])
+                if i["status"] == "Offline":
                     allFound = False
             self.clear()
             self.showTable()
@@ -415,5 +432,6 @@ class Scanner:
             self.generateStatistics()
 
 if __name__ == "__main__":
-    scanner = Scanner("Test Project")
+    #scanner = Scanner("Test Project")
+    scanner = Scanner()
     scanner.run()

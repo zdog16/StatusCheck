@@ -58,6 +58,7 @@ This feature is freshly in Beta so documentation and updates to come. The goal i
 | Integrate DB Builder into main Script | In Progress |
 | Add Functionality to Edit Exisitng Project files | Not Started |
 | Add Argument to Activate Project Mode | Not Started |
+| Add ping as a backup meathod of detecting device | In Progress - NEEDS TESTING|
 
 # Dependencies
 This script relies on the following dependencies.
