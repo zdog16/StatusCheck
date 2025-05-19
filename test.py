@@ -4,5 +4,5 @@ import StatusCheck
 install()
 c = Console()
 
-builder = StatusCheck.ProjectBuilder()
-builder.buildProjectDB()
+scanner = StatusCheck.Scanner()
+scanner.modifySettings()
