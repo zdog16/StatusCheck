@@ -3,6 +3,7 @@ from rich.traceback import install
 from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
+from datetime import datetime
 import pyperclip
 import requests
 import keyboard
@@ -10,6 +11,7 @@ import argparse
 import subprocess
 import json
 import time
+import csv
 import sys
 import os
 install()
@@ -60,7 +62,9 @@ class toolkit:
             return keys[usrSelection - 1]
         
     def getStyle(status):
-        if status == "Offline":
+        if status == "UnKnown":
+            return "yellow"
+        elif status == "Offline":
             return "red"
         elif status == "Online":
             return "green"
@@ -158,6 +162,8 @@ class Scanner:
         self.parser.add_argument("-f", "--filter", help="Filter and display results (Offline, Online)")
         self.parser.add_argument("-b", "--build", action="store_true", help="Build Project Database")  
         self.parser.add_argument("-x", "--settings", action="store_true", help="Modify Program Settings")
+        self.parser.add_argument("-o", "--simple", action="store_true", help="Activate Simple Output Mode")
+        self.parser.add_argument("-e", "--export", action="store_true", help="Export As CSV")
         self.args = self.parser.parse_args()
         self.tableTitle = self.args.title
         self.singleIP = self.args.single
@@ -165,6 +171,8 @@ class Scanner:
         self.recheckMode = self.args.recheck
         self.watchMode = self.args.watch
         self.manualEntry = self.args.manual
+        self.simpleOutput = self.args.simple
+        self.exportResult = self.args.export
         if self.args.filter == None:
             self.filter = self.settings["defaultFilter"]
         else:
@@ -283,9 +291,10 @@ class Scanner:
         return True, "Valid"
 
     
-    def getTableFromClipboard(self, ports=False) -> None:
-        c.print("[+] Copy the Table")
-        self.tools.waitForCopy()
+    def getTableFromClipboard(self, ports=False, confirm=True) -> None:
+        if confirm:
+            c.print("[+] Copy the Table")
+            self.tools.waitForCopy()
         pasteDump = pyperclip.paste()
         RowSplit = pasteDump.split('\n')
         self.database = []
@@ -325,10 +334,14 @@ class Scanner:
         if self.singleIP == None or self.manualEntry:
             table.add_column("Device", justify="left")
         table.add_column("IP Addres", justify="center")
-        if self.checkPing:
-            table.add_column("Ping", justify="center")
-        if self.checkResponse:
-            table.add_column("HTTP", justify="center")
+
+        if self.simpleOutput:
+            table.add_column("Status", justify="center")
+        else:
+            if self.checkPing:
+                table.add_column("Ping", justify="center")
+            if self.checkResponse:
+                table.add_column("HTTP", justify="center")
 
         if self.portMode:
             table.add_row("Base IP", self.baseIP, "")
@@ -344,11 +357,16 @@ class Scanner:
                         row.append(i["IP"].replace(self.baseIP, ""))
                     else:
                         row.append(i["IP"])
-
-                if self.checkPing:
-                    row.append(Text(i["pingStatus"], style=pingStyle, justify="center"))
-                if self.checkResponse:
-                    row.append(Text(i["responseStatus"], style=responseStyle, justify="center"))
+                if self.simpleOutput:
+                    if i["pingStatus"] == "Online" or i["responseStatus"] == "Online":
+                        row.append(Text("Online", style="green", justify="center"))
+                    else:
+                        row.append(Text("Offline", style="red", justify="center"))
+                else:
+                    if self.checkPing:
+                        row.append(Text(i["pingStatus"], style=pingStyle, justify="center"))
+                    if self.checkResponse:
+                        row.append(Text(i["responseStatus"], style=responseStyle, justify="center"))
 
                 table.add_row(*row)
         
@@ -380,7 +398,10 @@ class Scanner:
             c.print(f"{stats['onlineDevices']} or {stats['percentOnline']} Online")
             if stats['warningDevices'] > 0:
                 c.print(f"{stats['warningDevices']} or {stats['percentWarning']} in Warning")
-            c.print(f"{stats['offlineDevices']} or {stats['percentOffline']} Offline")
+            c.print(f"{stats['offlineDevices']} or {stats['percentOffline']} Offline")         
+
+        if self.exportResult:
+            self.exportCsv()
 
         return stats
     
@@ -492,6 +513,22 @@ class Scanner:
                     exit()
 
         c.print("All IPs Online", style="green")
+
+    def exportCsv(self) -> None:
+        curTimestamp = datetime.now().strftime("%y%m%d-%H%M")
+        if self.tableTitle == None:
+            csvFilename = 'StatusCheck Result ' + curTimestamp + '.csv'
+        else:
+            csvFilename = self.tableTitle + ' ' + curTimestamp + '.csv'
+
+        with open(csvFilename, 'w', newline='') as csvFile:
+            exportWriter = csv.writer(csvFile)
+            if self.tableTitle != None:
+                exportWriter.writerow([self.tableTitle])
+            exportWriter.writerow(['Device', 'IP', 'Ping Status', 'Response Status'])
+            for row in self.database:
+                exportWriter.writerow([row['device'], row['IP'], row['pingStatus'], row['responseStatus']])
+        
 
     def run(self) -> None:
         if self.changeSettings:
